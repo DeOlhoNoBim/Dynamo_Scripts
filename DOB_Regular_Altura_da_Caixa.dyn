@@ -1,0 +1,215 @@
+{
+  "Uuid": "3c9d0464-8643-5ffe-96e5-ab1769818209",
+  "IsCustomNode": false,
+  "Description": "",
+  "Name": "DOB_Regular_Altura_da_Caixa",
+  "ElementResolver": {
+    "ResolutionMap": {}
+  },
+  "Inputs": [
+    {
+      "Id": "a9954ffbbfac4856a543c2e987c9fe2e",
+      "Name": "NOME DO PARÂMETRO",
+      "Type": "string",
+      "Value": "Altura do Corpo da Caixa _ maior 41.62mm",
+      "Description": "Cria uma sequência de caracteres."
+    }
+  ],
+  "Outputs": [],
+  "Nodes": [
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "NodeType": "PythonScriptNode",
+      "Code": "\"\"\"\nCanal De olho no Bim\nhttps://www.youtube.com/watch?v=9TFK43Z9Tbk \n\"\"\"\n\n# Ativar suporte de Python e carregar biblioteca DesignScript\nimport clr\nimport math\nimport sys\npyt_path = r'C:\\Program Files (x86)\\IronPython 2.7\\Lib'\nsys.path.append (pyt_path)\nimport System\nclr.AddReference ('RevitServices')\nimport RevitServices\nfrom RevitServices.Persistence import DocumentManager\ndoc = DocumentManager.Instance.CurrentDBDocument\nclr.AddReference ('RevitAPI')\nimport Autodesk\nfrom Autodesk.Revit.DB import *\nclr.AddReference ('RevitNodes')\nimport Revit\nclr.ImportExtensions (Revit.Elements)\nclr.ImportExtensions (Revit.GeometryConversion)\nimport collections\nclr.AddReference('ProtoGeometry')\nfrom Autodesk.DesignScript.Geometry import *\n\n# OBTER O PONTO DE MAIOR Z E DE MENOR Z\nline = IN[0].GetLocation()\npa = line.StartPoint\npb = line.EndPoint\n\npini = pa if pa.Z > pb.Z else pb\npfim = pb if pa.Z > pb.Z else pa\n\n# OBTENDO O PONTO DO CONECTOR MAIS PRÓXIMO DO pfim\ncaixa = IN[1]\nele = UnwrapElement(caixa)\ncon = ele.MEPModel.ConnectorManager.Connectors\npontos = [i.Origin.ToPoint() for i in con]\n\naux = {}\n\nfor i in pontos:\n\taux[Geometry.DistanceTo(pfim,i)] = i\nponto = aux[min(aux.keys())]\n\n# OBTENDO A RETA DO NOVO TUBO\ntry:\n\tt = (ponto.X-pini.X)/(pfim.X-pini.X)\nexcept:\n\tt = (ponto.Y-pini.Y)/(pfim.Y-pini.Y)\npz = pini.Z + t*(pfim.Z-pini.Z)\nponto_final = Point.ByCoordinates(ponto.X,ponto.Y,pz)\nnew_line = Line.ByStartPointEndPoint(pini,ponto_final)\n\n# OBTENDO A DIFERENÇA DA COTA Z ENTRE O CONECTOR E O TUBO\nacres = abs(abs(ponto.Z) - abs(ponto_final.Z))\nif ponto.Z < ponto_final.Z:\n\tacres = -acres\n\t\n\n# AJUSTANDO ALTURA DA CAIXA\nvalor = IN[1].GetParameterValueByName(IN[2])\nvalor += acres \nIN[1].SetParameterByName(IN[2],valor)\n\n# AJUSTANDO O TUBO\n#IN[0].SetLocation(new_line)\n\n# CONECTANDO O TUBO A CAIXA\npipe = UnwrapElement(IN[0])\npipec = pipe.ConnectorManager.Connectors\nfor i in pipec:\n\tif not i.IsConnected:\n\t\tfor k in con:\n\t\t\tpcon = k.Origin.ToPoint()\n\t\t\tcx = pcon.X\n\t\t\tcy = pcon.Y\n\t\t\tif cx == ponto.X and cy == ponto.Y:\n\t\t\t\ti.ConnectTo(k)\nOUT = IN[0]",
+      "VariableInputPorts": true,
+      "Id": "4e5d669ed9f747da9242cee5c2bf67f0",
+      "Inputs": [
+        {
+          "Id": "edde0cdad03e4c489c9370021158fad3",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "6b695f71f2674131bc0b15f505beca63",
+          "Name": "IN[1]",
+          "Description": "Input #1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "5a60b53840e446738c1cd049c264b6b7",
+          "Name": "IN[2]",
+          "Description": "Input #2",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "1084a798ae4c4a77a678287bdaae97e1",
+          "Name": "OUT",
+          "Description": "Resultado do script Python",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Executa um script IronPython incorporado."
+    },
+    {
+      "ConcreteType": "Dynamo.Nodes.DSModelElementSelection, DSRevitNodesUI",
+      "NodeType": "ExtensionNode",
+      "InstanceId": [],
+      "Id": "73fe4e2826c44133b85b4bb576979f00",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "a1fd2078135a4cc0b08ac4e78910912d",
+          "Name": "Element",
+          "Description": "Os elementos selecionados.",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled"
+    },
+    {
+      "ConcreteType": "Dynamo.Nodes.DSModelElementSelection, DSRevitNodesUI",
+      "NodeType": "ExtensionNode",
+      "InstanceId": [],
+      "Id": "1691b9483c8543e09f7a6b8c0c4965ca",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "4126146c80074fbdad3304e93757c4ac",
+          "Name": "Element",
+          "Description": "Os elementos selecionados.",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Input.StringInput, CoreNodeModels",
+      "NodeType": "StringInputNode",
+      "InputValue": "Altura do Corpo da Caixa _ maior 41.62mm",
+      "Id": "a9954ffbbfac4856a543c2e987c9fe2e",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "edad48b6f3f84f1ab17748d5fad1d027",
+          "Name": "",
+          "Description": "String",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Cria uma sequência de caracteres."
+    }
+  ],
+  "Connectors": [
+    {
+      "Start": "a1fd2078135a4cc0b08ac4e78910912d",
+      "End": "edde0cdad03e4c489c9370021158fad3",
+      "Id": "aec0a4c7dcfe4465987f31c936fdfca6"
+    },
+    {
+      "Start": "4126146c80074fbdad3304e93757c4ac",
+      "End": "6b695f71f2674131bc0b15f505beca63",
+      "Id": "691a24ff7288434b9c0fb44199443c19"
+    },
+    {
+      "Start": "edad48b6f3f84f1ab17748d5fad1d027",
+      "End": "5a60b53840e446738c1cd049c264b6b7",
+      "Id": "21e56fc47a70465b982d46fadd3b3936"
+    }
+  ],
+  "Dependencies": [],
+  "Bindings": [],
+  "View": {
+    "Dynamo": {
+      "ScaleFactor": 1.0,
+      "HasRunWithoutCrash": false,
+      "IsVisibleInDynamoLibrary": true,
+      "Version": "2.0.2.6826",
+      "RunType": "Manual",
+      "RunPeriod": "1000"
+    },
+    "Camera": {
+      "Name": "Visualização do plano de fundo",
+      "EyeX": -5.1208577156066895,
+      "EyeY": 0.42056143283843994,
+      "EyeZ": 0.275023877620697,
+      "LookX": 1.1222267150878906,
+      "LookY": -1.2157455682754517,
+      "LookZ": -5.424095630645752,
+      "UpX": 0.0,
+      "UpY": 1.0,
+      "UpZ": 0.0
+    },
+    "NodeViews": [
+      {
+        "ShowGeometry": true,
+        "Name": "NEW PIPE",
+        "Id": "4e5d669ed9f747da9242cee5c2bf67f0",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 301.913936761994,
+        "Y": -298.785706945607
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "TUBO",
+        "Id": "73fe4e2826c44133b85b4bb576979f00",
+        "IsSetAsInput": true,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 26.3712546553771,
+        "Y": -290.288768215471
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "CAIXA",
+        "Id": "1691b9483c8543e09f7a6b8c0c4965ca",
+        "IsSetAsInput": true,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 28.351990408698,
+        "Y": -165.502415756248
+      },
+      {
+        "ShowGeometry": true,
+        "Name": "NOME DO PARÂMETRO",
+        "Id": "a9954ffbbfac4856a543c2e987c9fe2e",
+        "IsSetAsInput": true,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 31.372498074954493,
+        "Y": -42.5055535033085
+      }
+    ],
+    "Annotations": [],
+    "X": 37.327852613251196,
+    "Y": 432.93391937498166,
+    "Zoom": 1.2754115380544571
+  }
+}
